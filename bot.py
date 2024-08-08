@@ -1,7 +1,15 @@
 import discord
 import bot_token
+import aiosqlite
 
 bot = discord.Bot()
+
+@bot.on_guild_join()
+def joined(guild)
+    
+
+
+
 
 @bot.slash_command()
 async def hello(ctx, name: str = None):
