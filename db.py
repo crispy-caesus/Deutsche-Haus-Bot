@@ -13,13 +13,23 @@ class Database():
                 async for row in cursor:
                     print(row)
     
-    async def create_table(self):
+    async def create_tables(self):
         async with aiosqlite.connect(self.db_name) as db:
             await db.execute("""CREATE TABLE IF NOT EXISTS clubs (
                                     id INTEGER PRIMARY KEY,
                                     channel_name TEXT NOT NULL UNIQUE,
                                     owner INTEGER NOT NULL UNIQUE,
                                     role_id INTEGER NOT NULL UNIQUE);""")
+            await db.commit()                                                        
+            await db.execute("""CREATE TABLE IF NOT EXISTS members (
+                                    id INTEGER PRIMARY KEY,
+                                    user_id INTEGER NOT NULL,
+                                    club_id INTEGER NOT NULL,
+                                    UNIQUE(user_id, club_id) ON CONFLICT REPLACE,
+                                    FOREIGN KEY (club_id)
+                                        REFERENCES clubs (id)
+                                            ON UPDATE CASCADE
+                                            ON DELETE CASCADE);""")
             await db.commit()
 
     async def create_club(self, channel_name: str, owner: int, role_id: int):
@@ -33,31 +43,45 @@ class Database():
         except Error as e:
             print(e)
             return("Club existiert schon")
+
+    async def add_member(self, member: int, club: int):
+        sql = """INSERT INTO members (user_id, club_id)
+                 VALUES(?,?);"""
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                async with db.execute("SELECT id FROM clubs WHERE role_id = ?;", (club, )) as cursor:
+                    async for row in cursor:
+                        args = (member, row[0])
+                        await db.execute(sql, args)
+                        await db.commit()
+        except Error as e:
+            print(e)
+            return("Member existiert schon")
+                
+            
             
 
     
-    async def select_clubs(self):
+    async def select_clubs(self)-> list:
         clubs = []
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT * FROM clubs;") as cursor:
                 async for row in cursor:
                     clubs.append(row)
+        return clubs
 
-"""
-    async def select_clubs_of_member(self, member: int):
+
+    async def select_clubs_of_member(self, member: int)-> list:
         clubs = []
-        async with aiosqlite.connect(self.db_name) as db:
-            async with db.execute("SELECT * FROM clubs WHERE ;") as cursor:
-                async for row in cursor:
-                    clubs.append(row)
-"""
-# seperate users table with user and foreign key club id
-# select * where user=... and translate to club
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                async with db.execute("SELECT club_id FROM members WHERE user_id = ?;", (member, )) as cursor:
+                    async for row in cursor:
+                        async with db.execute("SELECT channel_name, role_id FROM clubs WHERE id = ?;", (row[0], )) as cursor2:
+                            async for row2 in cursor2:
+                                clubs.append(row2)
+        except Error as e:
+            print(e)
+        return clubs
 
 
-
-my_db = Database("test.db")
-asyncio.run(my_db.create_table())
-asyncio.run(my_db.list_tables())
-print(asyncio.run(my_db.create_club("test channel", 123123, 12312)))
-print(asyncio.run(my_db.select_clubs()))
