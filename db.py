@@ -43,7 +43,7 @@ class Database():
                 await db.commit()
         except Error as e:
             print(e)
-            return("Club existiert schon")
+            return("Error")
 
     async def add_member(self, member: int, owner: int):
         print(f"DB: received:\n   member: {member}\n   owner: {owner}")
@@ -58,7 +58,7 @@ class Database():
                         await db.commit()
         except Error as e:
             print(e)
-            return("Member existiert schon")
+            return("Error")
                 
             
             
@@ -86,4 +86,21 @@ class Database():
             print(e)
         return clubs
 
+    async def select_club_by_owner(self, member: int):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT role_id FROM clubs WHERE owner = ?;", (member,)) as cursor:
+                async for row in cursor:
+                    return(row[0])
+
+    async def check_if_club_creatable(self, channel_name, owner):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT owner FROM clubs WHERE owner = ?;", (owner,)) as cursor:
+                async for row in cursor:
+                    if row != None:
+                        return("Du hast bereits einen Club erstellt")
+            async with db.execute("SELECT channel_name FROM clubs WHERE channel_name = ?;", (channel_name,)) as cursor:
+                async for row in cursor:
+                    if row != None:
+                        return("Es existiert bereits ein Channel mit diesem Namen")
+        return None
 
