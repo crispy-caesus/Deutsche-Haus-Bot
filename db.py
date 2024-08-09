@@ -33,6 +33,7 @@ class Database():
             await db.commit()
 
     async def create_club(self, channel_name: str, owner: int, role_id: int):
+        print(f"DB: received:\n   channel_name: {channel_name}\n   owner: {owner}\n   role_id: {role_id}")
         args = (channel_name, owner, role_id)
         sql = """INSERT INTO clubs (channel_name,owner,role_id)
                  VALUES(?,?,?);"""
@@ -44,12 +45,13 @@ class Database():
             print(e)
             return("Club existiert schon")
 
-    async def add_member(self, member: int, club: int):
+    async def add_member(self, member: int, owner: int):
+        print(f"DB: received:\n   member: {member}\n   owner: {owner}")
         sql = """INSERT INTO members (user_id, club_id)
                  VALUES(?,?);"""
         try:
             async with aiosqlite.connect(self.db_name) as db:
-                async with db.execute("SELECT id FROM clubs WHERE role_id = ?;", (club, )) as cursor:
+                async with db.execute("SELECT id FROM clubs WHERE owner = ?;", (owner, )) as cursor:
                     async for row in cursor:
                         args = (member, row[0])
                         await db.execute(sql, args)
