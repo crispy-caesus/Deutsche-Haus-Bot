@@ -1,14 +1,11 @@
 import db as database
 
 
-
-
 # ========================= INITIALIZATION ========================= #
 
 async def on_guild_join(guild_id):
     db = database.Database(f"{guild_id}.db")
-    await db.create_tables()
-    
+    await db.create_tables()    
 
 # ========================= SETUP ========================== #
 
@@ -63,22 +60,41 @@ async def add_club_category(guild_id: int, category_id: int)-> str:
 
 # ========================== ADD CLUB ======================== #
 
-async def add_club(channel_name_without_emoji, emoji, role_name, color, owner_id):
+async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, role_name: str, color: str, owner_id: int, cycle: int):
     # ------------------------- check if club creatable ------------------------ #
-    existing_club_of_owner = db.get_club_by_owner(owner_id)
-    if existing_club_of_owner == None:
-        return("Du hast bereits einen Club")
+    db = database.Database(f"{guild_id}.db")
+
+    match cycle:
+        case 1: # check if booster
+            return(await db.get_booster_role_id())
+            
+        case 2: # check for ability to create given club
+            existing_club_of_owner = await db.select_club_by_owner(owner_id)
+            if existing_club_of_owner != None:
+                return("Error! Du hast bereits einen Club")
     
-    combined_channel_name = f"「{emoji}」{channel_name_without_emoji}"
-    existing_club = db.check_if_channel_exists(combined_channel_name)
-    if existing_club != None:
-        return("Es gibt bereits einen Club mit diesem Kanalnamen")
+            combined_channel_name = f"「{emoji}」{channel_name_without_emoji}"
+            existing_club = await db.select_club_by_channel_name(combined_channel_name)
+            if existing_club != None:
+                return("Error! Es gibt bereits einen Club mit diesem Kanalnamen")
 
-    existing_club_role = bot.check_if_role_exists(role_name)
-    if existing_club_role != None:
-        return("Es existiert bereits ein Club mit diesem Rollennamen")
+            existing_club_role = await db.select_club_by_role_name(role_name)
+            if existing_club_role != None:
+                return("Error! Es existiert bereits ein Club mit diesem Rollennamen")
+        
+            # create club on discord
+            if color[0] == '#':
+                color = color[1:]
+            try:
+                color = int("0x"+color, 16)+0x200
+            except:
+                return("Error! Farbformat falsch angegeben")
 
-    existing_role
+            return(role_name, color)
+        
+        case 3:
+            return(await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name))
+    
 
     # role id needed
     

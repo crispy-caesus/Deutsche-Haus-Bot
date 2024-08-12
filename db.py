@@ -6,7 +6,6 @@ class Database():
     def __init__(self, db_name: str):
         self.db_name = db_name
 
-
 # ====================== INITIALIZATION ======================== #
 # could be done more flexibly somehow probably, receiving the schema from the logic.py, but ehhhhhhhhhhh (also not databse independent then)
     async def create_tables(self):
@@ -15,7 +14,8 @@ class Database():
                                     id INTEGER PRIMARY KEY,
                                     channel_name TEXT NOT NULL UNIQUE,
                                     owner INTEGER NOT NULL UNIQUE,
-                                    role_id INTEGER NOT NULL UNIQUE);""")
+                                    role_id INTEGER NOT NULL UNIQUE,
+                                    role_name TEXT NOT NULL UNIQUE);""")
             await db.commit()                                                        
             await db.execute("""CREATE TABLE IF NOT EXISTS members (
                                     id INTEGER PRIMARY KEY,
@@ -58,31 +58,42 @@ class Database():
 
 # =========================== create club =========================== #
 
-    async def check_if_club_creatable(self, channel_name, owner):
+    async def get_booster_role_id(self):
         async with aiosqlite.connect(self.db_name) as db:
-            async with db.execute("SELECT owner FROM clubs WHERE owner = ?;", (owner,)) as cursor:
+            async with db.execute("SELECT discord_id FROM ids WHERE id_type = 'booster_role_id';") as cursor:
+                return((await cursor.fetchone())[0])
+
+    async def select_club_by_owner(self, owner_id):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT * FROM clubs WHERE owner = ?;", (owner_id,)) as cursor:
                 async for row in cursor:
-                    if row != None:
-                        return("Du hast bereits einen Club erstellt")
-            async with db.execute("SELECT channel_name FROM clubs WHERE channel_name = ?;", (channel_name,)) as cursor:
+                    return row[0]
+
+    async def select_club_by_channel_name(self, channel_name):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT * FROM clubs WHERE channel_name = ?;", (channel_name,)) as cursor:
                 async for row in cursor:
-                    if row != None:
-                        return("Es existiert bereits ein Channel mit diesem Namen")
-        return None
+                    return row[0]
+
+    async def select_club_by_role_name(self, role_name):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT * FROM clubs WHERE role_name = ?;", (role_name,)) as cursor:
+                async for row in cursor:
+                    return row[0]
 
 
-    async def create_club(self, channel_name: str, owner: int, role_id: int):
+    async def create_club(self, channel_name: str, owner: int, role_id: int, role_name: str):
         print(f"DB: received:\n   channel_name: {channel_name}\n   owner: {owner}\n   role_id: {role_id}")
-        args = (channel_name, owner, role_id)
-        sql = """INSERT INTO clubs (channel_name,owner,role_id)
-                 VALUES(?,?,?);"""
+        args = (channel_name, owner, role_id, role_name)
+        sql = """INSERT INTO clubs (channel_name,owner,role_id,role_name)
+                 VALUES(?,?,?,?);"""
         try:
             async with aiosqlite.connect(self.db_name) as db:
                 await db.execute(sql, args)
                 await db.commit()
         except Error as e:
             print(e)
-            return("Error")
+            return("Error!")
 
 # ============================ add member ================================== # 
 
@@ -101,7 +112,7 @@ class Database():
             print(e)
             return("Error")
 
-    async def select_club_by_owner(self, member: int):
+    async def select_role_id_by_owner(self, member: int):
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT role_id FROM clubs WHERE owner = ?;", (member,)) as cursor:
                 async for row in cursor:

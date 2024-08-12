@@ -4,9 +4,13 @@ import bot_token
 import db as database
 import logic
 
+# ======================== STARTUP =========================== #
+
 bot = discord.Bot()
+
 role_converter = discord.ext.commands.RoleConverter()
 member_converter = discord.ext.commands.MemberConverter()
+
 
 # ======================= INITIALIZATION ========================== #
 
@@ -53,36 +57,40 @@ async def setze_club_kategorie(ctx, kategorie_id):
 async def
 """
 
+@bot.slash_command()
 async def get_existing_roles(ctx):
     results = ctx.guild.roles
-    return results
+    print(results)
 
+
+@bot.slash_command()
+async def test(ctx):
+    await ctx.guild.create_role(name = "hi", color=int("0x"+("#5460D9"[1:]), 16)+0x200, mentionable = False)
+    await ctx.respond("hi")
 
 # ======================== add club ================================ #
 
 @bot.slash_command(description="Erstellt einen Booster Club")
-@discord.ext.commands.has_role(1170646611332956208)
 async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
-    user = ctx.author.id
 
-    await logic.add_club(kanalname, emoji, rollenname, rollenfarbe, user)
-
-    db = database.Database(f"{ctx.guild.id}.db")
-    await db.create_tables()
-    check = await db.check_if_club_creatable(kanalname, user)
-    if check != None:
-        await ctx.respond(check)
+    if ctx.author.get_role(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 1))== None:
+        await ctx.respond("Du bist kein Booster")
         return
-
-    await ctx.guild.create_role(name=rollenname, color=0x5460D9, mentionable=False)
+    response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 2)
+    if type(response) == str:
+        await ctx.respond(response)
+        return
+    else:
+        await ctx.guild.create_role(name = response[0], color = response[1], mentionable = False)
 
     role = await role_converter.convert(ctx, rollenname)
-    channel_name = f"[{emoji}]{kanalname}"
-    response = await db.create_club(channel_name, user, role.id)
-    if response == None:
-        await ctx.respond(f"{channel_name} created!")
-    else:
+    
+    response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3)
+    if response != None:
         await ctx.respond(response)
+    await ctx.respond("✅ Club erstellt!")  
+
+
 
 @bot.slash_command(description="Fügt Member zu eigenem Club hinzu")
 async def mitglied_hinzufuegen(ctx, member):
