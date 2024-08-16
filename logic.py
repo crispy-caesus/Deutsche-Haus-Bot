@@ -91,11 +91,25 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, r
                 return("Error! Farbformat falsch angegeben")
 
             return(role_name, color)
-        
-        case 3:
-            return(await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name))
-    
 
-    # role id needed
+        case 3:
+            error = await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name)
+            if error != None:
+                return(error)
+            else:
+                return(f"✅ Club `「{emoji}」{channel_name_without_emoji}` erstellt!")
+
+
+# ==================================== EDIT CLUB ============================= #
+
+async def club_change_channel_name(guild_id: int, owner_id: int, new_channel_name: str):
+    db = database.Database(f"{guild_id}.db")
+    e = await db.select_club_by_owner(owner_id)
+    print(e[1][:3]+new_channel_name)
+    error = await db.club_edit(owner_id, "channel_name", e[1][:3]+new_channel_name)
+    if error != None:
+        return(error)
+    else:
+        return(f"✅ Club Name von `{e[1][3:]}` auf `{new_channel_name}` geändert")
     
 

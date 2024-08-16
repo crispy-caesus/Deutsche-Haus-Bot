@@ -68,7 +68,7 @@ async def test(ctx):
     await ctx.guild.create_role(name = "hi", color=int("0x"+("#5460D9"[1:]), 16)+0x200, mentionable = False)
     await ctx.respond("hi")
 
-# ======================== add club ================================ #
+# ======================== ADD CLUB ================================ #
 
 @bot.slash_command(description="Erstellt einen Booster Club")
 async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
@@ -85,13 +85,15 @@ async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
 
     role = await role_converter.convert(ctx, rollenname)
     
-    response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3)
-    if response != None:
-        await ctx.respond(response)
-    await ctx.respond("✅ Club erstellt!")  
+    await ctx.respond(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3))
 
+# ==================== EDIT CLUBS ====================== #
 
+@bot.slash_command(description="Ändert den Channel Name des Clubs")
+async def club_channel_name_aendern(ctx, neuer_name):
+    await ctx.respond(await logic.club_change_channel_name(ctx.guild.id, ctx.author.id, neuer_name))
 
+# ========================= dsfsf ======================= #
 @bot.slash_command(description="Fügt Member zu eigenem Club hinzu")
 async def mitglied_hinzufuegen(ctx, member):
     db = database.Database(f"{ctx.guild.id}.db")

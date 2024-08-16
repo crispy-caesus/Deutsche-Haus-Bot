@@ -13,7 +13,7 @@ class Database():
             await db.execute("""CREATE TABLE IF NOT EXISTS clubs (
                                     id INTEGER PRIMARY KEY,
                                     channel_name TEXT NOT NULL UNIQUE,
-                                    owner INTEGER NOT NULL UNIQUE,
+                                    owner_id INTEGER NOT NULL UNIQUE,
                                     role_id INTEGER NOT NULL UNIQUE,
                                     role_name TEXT NOT NULL UNIQUE);""")
             await db.commit()                                                        
@@ -56,7 +56,7 @@ class Database():
                 return("Error")
         return(None)
 
-# =========================== create club =========================== #
+# =========================== CREATE CLUB =========================== #
 
     async def get_booster_role_id(self):
         async with aiosqlite.connect(self.db_name) as db:
@@ -65,9 +65,9 @@ class Database():
 
     async def select_club_by_owner(self, owner_id):
         async with aiosqlite.connect(self.db_name) as db:
-            async with db.execute("SELECT * FROM clubs WHERE owner = ?;", (owner_id,)) as cursor:
+            async with db.execute("SELECT * FROM clubs WHERE owner_id = ?;", (owner_id,)) as cursor:
                 async for row in cursor:
-                    return row[0]
+                    return row
 
     async def select_club_by_channel_name(self, channel_name):
         async with aiosqlite.connect(self.db_name) as db:
@@ -85,7 +85,7 @@ class Database():
     async def create_club(self, channel_name: str, owner: int, role_id: int, role_name: str):
         print(f"DB: received:\n   channel_name: {channel_name}\n   owner: {owner}\n   role_id: {role_id}")
         args = (channel_name, owner, role_id, role_name)
-        sql = """INSERT INTO clubs (channel_name,owner,role_id,role_name)
+        sql = """INSERT INTO clubs (channel_name,owner_id,role_id,role_name)
                  VALUES(?,?,?,?);"""
         try:
             async with aiosqlite.connect(self.db_name) as db:
@@ -93,7 +93,21 @@ class Database():
                 await db.commit()
         except Error as e:
             print(e)
-            return("Error!")
+            return("❌ Error!")
+
+# ============================ EDIT CLUB ========================== #
+
+    async def club_edit(self, owner_id: int, column, value):
+        print(f"DB: updating club:\n    owner_id: {owner_id}\n    column: {column}\n    value: {value}")
+        async with aiosqlite.connect(self.db_name) as db:
+            try:
+                await db.execute(f"UPDATE clubs SET {column} = ? WHERE owner_id = ?;", (value, owner_id))
+                await db.commit()
+                return(None)
+            except Error as e:
+                print(e)
+                return("❌ Error!")
+
 
 # ============================ add member ================================== # 
 
@@ -103,18 +117,18 @@ class Database():
                  VALUES(?,?);"""
         try:
             async with aiosqlite.connect(self.db_name) as db:
-                async with db.execute("SELECT id FROM clubs WHERE owner = ?;", (owner, )) as cursor:
+                async with db.execute("SELECT id FROM clubs WHERE owner_id = ?;", (owner, )) as cursor:
                     async for row in cursor:
                         args = (member, row[0])
                         await db.execute(sql, args)
                         await db.commit()
         except Error as e:
             print(e)
-            return("Error")
+            return("❌ Error")
 
     async def select_role_id_by_owner(self, member: int):
         async with aiosqlite.connect(self.db_name) as db:
-            async with db.execute("SELECT role_id FROM clubs WHERE owner = ?;", (member,)) as cursor:
+            async with db.execute("SELECT role_id FROM clubs WHERE owner_id = ?;", (member,)) as cursor:
                 async for row in cursor:
                     return(row[0])
 
