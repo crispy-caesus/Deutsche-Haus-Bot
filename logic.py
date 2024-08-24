@@ -1,5 +1,5 @@
 import db as database
-import emoji as emojis
+import emoji
 
 
 # ========================= INITIALIZATION ========================= #
@@ -61,7 +61,7 @@ async def add_club_category(guild_id: int, category_id: int)-> str:
 
 # ========================== ADD CLUB ======================== #
 
-async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, role_name: str, color: str, owner_id: int, cycle: int):
+async def add_club(guild_id: int, channel_name_without_emoji: str, emoji_: str, role_name: str, color: str, owner_id: int, cycle: int):
     # ------------------------- check if club creatable ------------------------ #
     db = database.Database(f"{guild_id}.db")
 
@@ -76,13 +76,13 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, r
             
 # ---------------------- emoji checks ------------------------- #
 
-            if len(emoji) != 1:
+            if len(emoji_) != 1:
                 return("❌ Error! Das Emoji-Feld darf nicht länger oder kürzer als 1 sein")
-            if emojis.is_emoji(emoji) != True:
+            if emoji.is_emoji(emoji_) != True:
                 return("  Error! Das Emoji-Feld muss mit einem Emoji gefüllt werden")
 
 # ---------------------- channel name checks ------------------------- #
-            if emojis.emoji_count(channel_name_without_emoji) > 0:
+            if emoji.emoji_count(channel_name_without_emoji) > 0:
                 return("❌ Error! Der Kanalname darf keine Emojis enthalten")
 
 
