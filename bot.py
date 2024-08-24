@@ -85,10 +85,7 @@ async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
 
     role = await role_converter.convert(ctx, rollenname)
     
-    response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3)
-    if response != None:
-        await ctx.respond(response)
-    await ctx.respond("✅ Club erstellt!")  
+    await ctx.respond(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3))
 
 # ==================== EDIT CLUBS ====================== #
 

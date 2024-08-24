@@ -103,9 +103,14 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, r
                 return("❌ Error! Farbformat falsch angegeben")
 
             return(role_name, color)
-        
+
         case 3:
-            return(await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name))
+
+            error = await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name)
+            if error != None:
+                return(error)
+            else:
+                return(f"✅ Club `「{emoji}」{channel_name_without_emoji}` erstellt!")
 
 # ==================================== EDIT CLUB ============================= #
 
@@ -121,6 +126,4 @@ async def club_change_channel_name(guild_id: int, owner_id: int, new_channel_nam
         return(error)
     else:
         return(f"✅ Club Name von `{old_channel_name}` auf `{new_channel_name}` geändert")
-    # role id needed
-    
 

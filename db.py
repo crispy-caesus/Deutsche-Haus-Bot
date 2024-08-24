@@ -72,6 +72,7 @@ class Database():
                 print(e)
                 return("❌ Error! Du besitzt keinen Club")
 
+
     async def select_club_by_channel_name(self, channel_name):
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT * FROM clubs WHERE channel_name = ?;", (channel_name,)) as cursor:
@@ -101,6 +102,8 @@ class Database():
 # ============================ EDIT CLUB ========================== #
 
     async def club_edit(self, owner_id: int, column, value):
+
+        print(f"DB: updating club:\n    owner_id: {owner_id}\n    column: {column}\n    value: {value}")
         async with aiosqlite.connect(self.db_name) as db:
             try:
                 await db.execute(f"UPDATE clubs SET {column} = ? WHERE owner_id = ?;", (value, owner_id))
@@ -126,6 +129,7 @@ class Database():
         except Error as e:
             print(e)
             return("❌ Error!")
+
 
     async def select_role_id_by_owner(self, member: int):
         async with aiosqlite.connect(self.db_name) as db:
