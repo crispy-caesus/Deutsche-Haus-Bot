@@ -1,4 +1,5 @@
 import db as database
+import emoji as emojis
 
 
 # ========================= INITIALIZATION ========================= #
@@ -71,31 +72,55 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji: str, r
         case 2: # check for ability to create given club
             existing_club_of_owner = await db.select_club_by_owner(owner_id)
             if existing_club_of_owner != None:
-                return("Error! Du hast bereits einen Club")
-    
+                return("❌ Error! Du hast bereits einen Club")
+            
+# ---------------------- emoji checks ------------------------- #
+
+            if len(emoji) != 1:
+                return("❌ Error! Das Emoji-Feld darf nicht länger oder kürzer als 1 sein")
+            if emojis.is_emoji(emoji) != True:
+                return("  Error! Das Emoji-Feld muss mit einem Emoji gefüllt werden")
+
+# ---------------------- channel name checks ------------------------- #
+            if emojis.emoji_count(channel_name_without_emoji) > 0:
+                return("❌ Error! Der Kanalname darf keine Emojis enthalten")
+
+
             combined_channel_name = f"「{emoji}」{channel_name_without_emoji}"
             existing_club = await db.select_club_by_channel_name(combined_channel_name)
             if existing_club != None:
-                return("Error! Es gibt bereits einen Club mit diesem Kanalnamen")
+                return("❌ Error! Es gibt bereits einen Club mit diesem Kanalnamen")
 
             existing_club_role = await db.select_club_by_role_name(role_name)
             if existing_club_role != None:
-                return("Error! Es existiert bereits ein Club mit diesem Rollennamen")
+                return("❌ Error! Es existiert bereits ein Club mit diesem Rollennamen")
         
-            # create club on discord
             if color[0] == '#':
                 color = color[1:]
             try:
                 color = int("0x"+color, 16)+0x200
             except:
-                return("Error! Farbformat falsch angegeben")
+                return("❌ Error! Farbformat falsch angegeben")
 
             return(role_name, color)
         
         case 3:
             return(await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name))
-    
 
+# ==================================== EDIT CLUB ============================= #
+
+async def club_change_channel_name(guild_id: int, owner_id: int, new_channel_name: str):
+    db = database.Database(f"{guild_id}.db")
+    response = await db.select_club_by_owner(owner_id)
+    if response[:8] == "❌ Error!":
+        return(response)
+    else:
+        old_channel_name = response[1]
+    error = await db.club_edit(owner_id, "channel_name", new_channel_name)
+    if error != None:
+        return(error)
+    else:
+        return(f"✅ Club Name von `{old_channel_name}` auf `{new_channel_name}` geändert")
     # role id needed
     
 
