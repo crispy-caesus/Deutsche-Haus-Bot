@@ -66,7 +66,7 @@ async def get_existing_roles(ctx):
 @bot.slash_command()
 async def test(ctx):
     await ctx.guild.create_role(name = "hi", color=int("0x"+("#5460D9"[1:]), 16)+0x200, mentionable = False)
-    await ctx.respond("hi")
+    await ctx.respond("hii")
 
 # ======================== ADD CLUB ================================ #
 
