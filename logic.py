@@ -70,7 +70,7 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji_: str, 
             return(await db.get_booster_role_id())
             
         case 2: # check for ability to create given club
-            existing_club_of_owner = await db.select_club_by_owner(owner_id)
+            existing_club_of_owner = await db.select_role_id_by_owner(owner_id)
             if existing_club_of_owner != None:
                 return("❌ Error! Du hast bereits einen Club")
             
@@ -86,7 +86,7 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji_: str, 
                 return("❌ Error! Der Kanalname darf keine Emojis enthalten")
 
 
-            combined_channel_name = f"「{emoji}」{channel_name_without_emoji}"
+            combined_channel_name = f"「{emoji_}」{channel_name_without_emoji}"
             existing_club = await db.select_club_by_channel_name(combined_channel_name)
             if existing_club != None:
                 return("❌ Error! Es gibt bereits einen Club mit diesem Kanalnamen")
@@ -106,11 +106,11 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji_: str, 
 
         case 3:
 
-            error = await db.create_club(f"「{emoji}」{channel_name_without_emoji}", owner_id, int(color), role_name)
+            error = await db.create_club(f"「{emoji_}」{channel_name_without_emoji}", owner_id, int(color), role_name)
             if error != None:
                 return(error)
             else:
-                return(f"✅ Club `「{emoji}」{channel_name_without_emoji}` erstellt!")
+                return(f"✅ Club `「{emoji_}」{channel_name_without_emoji}` erstellt!")
 
 # ==================================== EDIT CLUB ============================= #
 

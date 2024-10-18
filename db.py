@@ -33,7 +33,7 @@ class Database():
             await db.commit()
             await db.execute("""CREATE TABLE IF NOT EXISTS ids (
                                     id INTEGER PRIMARY KEY,
-                                    id_type INTEGER UNIQUE NOT NULL,
+                                    id_type TEXT UNIQUE NOT NULL,
                                     discord_id INTEGER NOT NULL);""")
             await db.commit()
 
@@ -63,11 +63,11 @@ class Database():
             async with db.execute("SELECT discord_id FROM ids WHERE id_type = 'booster_role_id';") as cursor:
                 return((await cursor.fetchone())[0])
 
-    async def select_club_by_owner(self, owner_id):
+    async def select_role_id_by_owner(self, owner_id):
         async with aiosqlite.connect(self.db_name) as db:
             try:
-                async with db.execute("SELECT * FROM clubs WHERE owner_id = ?;", (owner_id,)) as cursor:
-                    return(await cursor.fetchone())
+                async with db.execute("SELECT role_id FROM clubs WHERE owner_id = ?;", (owner_id,)) as cursor:
+                    return(await cursor.fetchone()[3])
             except Error as e:
                 print(e)
                 return("❌ Error! Du besitzt keinen Club")
@@ -168,5 +168,26 @@ class Database():
                 async for row in cursor:
                     clubs.append(row)
         return clubs
+
+
+
+
+    async def get_channel_name_role_name_by_member(self, user_id)->list:
+        clubs = []
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT club_id FROM members WHERE user_id = ?;", (user_id,)) as cursor:
+                async for club_id in cursor:
+                    print(f"{type(club_id[0])}: {club_id[0]}")
+                    async with db.execute("SELECT channel_name, role_name FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
+                        async for club in cursor2:
+                            clubs.append(club)
+        print(clubs)
+
+        return clubs
+
+
+
+
+
 
 

@@ -104,11 +104,12 @@ async def mitglied_hinzufuegen(ctx, member):
 
     member = await member_converter.convert(ctx, member)
 
-    response = await db.select_club_by_owner(ctx.author.id)
+    response = await db.select_role_id_by_owner(ctx.author.id)
     if response == None:
         await ctx.respond("Du hast keinen Club")
         return
-    role = await role_converter.convert(ctx, str(response))
+    print(f"{type(response)}: {response}")
+    role = discord.utils.get(ctx.guild.roles, id=response)
 
 
     await member.add_roles(role)
@@ -121,17 +122,37 @@ async def ping(ctx): # a slash command will be created with the name "ping"
 
 # ==================== distributor vc ======================= #
 
-@bot.slash_command(description="Setzt join to create VC")
-@discord.ext.commands.has_role(1170646611332956208)
-async def verteiler_setzen(kanal_id):
-    pass
-
-#@bot.listen()
+@bot.event
 async def on_voice_state_update(user, before, after):
-    if after.channel.id == 1:
-        print(f"{user.name} Joined The {after.channel.name} VC")
-        print(after.channel.members)
+    if before.channel != after.channel:
+        if after.channel and after.channel.id == 1052988388250226691:
+            print(f"{user.name} Joined The {after.channel.name} VC")
+            print(after.channel.members)
+            
+            db = database.Database(f"{after.channel.guild.id}.db")
+            category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
+            if category is None:
+                print("Kategorie nicht gefunden")
+
+            role = discord.utils.get(after.channel.guild.roles, id=await db.get_discord_id("booster_role_id"))
+            if role is None:
+                print("Rolle nicht gefunden")
 
 
+            overwrites = {
+                after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
+                role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
+            }
+
+            response = await db.get_channel_name_role_name_by_member(user.id)
+            channel_name = response[0][0]
+            print(f"{type(channel_name)}: {channel_name}")
+            
+            voice_channel = await category.create_voice_channel(
+                name = channel_name,
+                overwrites=overwrites
+            )
+
+            print(f"Voice channel '{channel_name}' created under the category '{category}' and restricted to the role '{role}'.")
 
 bot.run(bot_token.token)
