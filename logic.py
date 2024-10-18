@@ -31,7 +31,7 @@ async def setup(guild_id):
     return( \
             f"{booster_check} Setze die Booster Rolle mit `/setze_booster_rolle`\n" \
             f"{distributor_check} Setze den Verteiler Channel mit `/setze_verteiler_channel`\n" \
-            f"{category_check} Setze die Kategorie, in der, die Clubs erstellt werden sollen mit `/setze_club_kategorie`" \
+            f"{category_check} Setze die Kategorie, in der die Clubs erstellt werden sollen mit `/setze_club_kategorie`" \
            )
 
 async def add_booster_role(guild_id: int, booster_role_id: int)-> str:
