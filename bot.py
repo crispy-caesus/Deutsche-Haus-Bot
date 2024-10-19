@@ -1,12 +1,17 @@
 import discord
 import discord.ext.commands
+import asyncio
+
 import bot_token
 import db as database
 import logic
 
 # ======================== STARTUP =========================== #
 
-bot = discord.Bot()
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = discord.Bot(intents=intents)
 
 role_converter = discord.ext.commands.RoleConverter()
 member_converter = discord.ext.commands.MemberConverter()
@@ -130,29 +135,60 @@ async def on_voice_state_update(user, before, after):
             print(after.channel.members)
             
             db = database.Database(f"{after.channel.guild.id}.db")
-            category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
-            if category is None:
-                print("Kategorie nicht gefunden")
-
-            role = discord.utils.get(after.channel.guild.roles, id=await db.get_discord_id("booster_role_id"))
-            if role is None:
-                print("Rolle nicht gefunden")
+           
 
 
-            overwrites = {
-                after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
-                role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
-            }
-
-            response = await db.get_channel_name_role_name_by_member(user.id)
-            channel_name = response[0][0]
-            print(f"{type(channel_name)}: {channel_name}")
+            db_response = await db.get_channel_name_role_name_by_member(user.id)
+            message = "Welchen Club-Kanal willst du öffnen?"
+            for i in range(len(db_response)):
+                message += f"\n**{i+1}.** {db_response[i][0]}"
             
-            voice_channel = await category.create_voice_channel(
-                name = channel_name,
-                overwrites=overwrites
-            )
+            await after.channel.send(message)
+            
+            def check(m):
+                return m.author == user and m.channel == after.channel
+            
 
-            print(f"Voice channel '{channel_name}' created under the category '{category}' and restricted to the role '{role}'.")
+            done = False
+            while not done:
+
+                try:
+                    response = await bot.wait_for('message', check=check, timeout=30.0)
+                except asyncio.TimeoutError:
+                    await after.channel.send("Zu spät")
+                else:
+                    try: 
+                        int(response.content)
+                    except ValueError:
+                        await after.channel.send(":x: Konnte nicht in ganze Zahl umwandeln")
+                        continue
+                    if int(response.content) <= len(db_response) and int(response.content) > 0:
+                        channel_name = db_response[int(response.content)-1][0]
+
+                        category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
+                        if category is None:
+                            print("Kategorie nicht gefunden")
+
+                        role = discord.utils.get(after.channel.guild.roles, id=db_response[int(response.content)-1][1])
+                        if role is None:
+                            print("Rolle nicht gefunden")
+
+                        overwrites = {
+                            after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
+                            role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
+                        }
+
+
+                        voice_channel = await category.create_voice_channel(
+                            name = channel_name,
+                            overwrites=overwrites
+                        )
+                        done = True
+                    else:
+                        await after.channel.send(":x: Nicht zulässige Zahl")
+
+            if user.voice:
+                await user.move_to(voice_channel)
+
 
 bot.run(bot_token.token)

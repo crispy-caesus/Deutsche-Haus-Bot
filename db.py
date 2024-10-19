@@ -178,7 +178,7 @@ class Database():
             async with db.execute("SELECT club_id FROM members WHERE user_id = ?;", (user_id,)) as cursor:
                 async for club_id in cursor:
                     print(f"{type(club_id[0])}: {club_id[0]}")
-                    async with db.execute("SELECT channel_name, role_name FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
+                    async with db.execute("SELECT channel_name, role_id FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
                         async for club in cursor2:
                             clubs.append(club)
         print(clubs)
