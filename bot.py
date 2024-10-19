@@ -16,7 +16,6 @@ bot = discord.Bot(intents=intents)
 role_converter = discord.ext.commands.RoleConverter()
 member_converter = discord.ext.commands.MemberConverter()
 
-
 # ======================= INITIALIZATION ========================== #
 
 @bot.listen()
@@ -127,68 +126,82 @@ async def ping(ctx): # a slash command will be created with the name "ping"
 
 # ==================== distributor vc ======================= #
 
+distributor_vcs = []
+
 @bot.event
 async def on_voice_state_update(user, before, after):
     if before.channel != after.channel:
-        if after.channel and after.channel.id == 1052988388250226691:
-            print(f"{user.name} Joined The {after.channel.name} VC")
-            print(after.channel.members)
-            
+
+        if after.channel:
             db = database.Database(f"{after.channel.guild.id}.db")
-           
 
-
-            db_response = await db.get_channel_name_role_name_by_member(user.id)
-            message = "Welchen Club-Kanal willst du öffnen?"
-            for i in range(len(db_response)):
-                message += f"\n**{i+1}.** {db_response[i][0]}"
-            
-            await after.channel.send(message)
-            
-            def check(m):
-                return m.author == user and m.channel == after.channel
             
 
-            done = False
-            while not done:
-
-                try:
-                    response = await bot.wait_for('message', check=check, timeout=30.0)
-                except asyncio.TimeoutError:
-                    await after.channel.send("Zu spät")
-                else:
-                    try: 
-                        int(response.content)
-                    except ValueError:
-                        await after.channel.send(":x: Konnte nicht in ganze Zahl umwandeln")
-                        continue
-                    if int(response.content) <= len(db_response) and int(response.content) > 0:
-                        channel_name = db_response[int(response.content)-1][0]
-
-                        category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
-                        if category is None:
-                            print("Kategorie nicht gefunden")
-
-                        role = discord.utils.get(after.channel.guild.roles, id=db_response[int(response.content)-1][1])
-                        if role is None:
-                            print("Rolle nicht gefunden")
-
-                        overwrites = {
-                            after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
-                            role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
-                        }
+            if after.channel.id == await db.get_discord_id("distributor_channel_id"):
+                print(f"{user.name} Joined The {after.channel.name} VC")
+                print(after.channel.members)
+                
+               
 
 
-                        voice_channel = await category.create_voice_channel(
-                            name = channel_name,
-                            overwrites=overwrites
-                        )
-                        done = True
+                db_response = await db.get_channel_name_role_name_by_member(user.id)
+                message = "Welchen Club-Kanal willst du öffnen?"
+                for i in range(len(db_response)):
+                    message += f"\n**{i+1}.** {db_response[i][0]}"
+                
+                await after.channel.send(message)
+                
+                def check(m):
+                    return m.author == user and m.channel == after.channel
+                
+
+                done = False
+                while not done:
+
+                    try:
+                        response = await bot.wait_for('message', check=check, timeout=30.0)
+                    except asyncio.TimeoutError:
+                        await after.channel.send("Zu spät")
                     else:
-                        await after.channel.send(":x: Nicht zulässige Zahl")
+                        try: 
+                            int(response.content)
+                        except ValueError:
+                            await after.channel.send(":x: Konnte nicht in ganze Zahl umwandeln")
+                            continue
+                        if int(response.content) <= len(db_response) and int(response.content) > 0:
+                            channel_name = db_response[int(response.content)-1][0]
 
-            if user.voice:
-                await user.move_to(voice_channel)
+                            category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
+                            if category is None:
+                                print("Kategorie nicht gefunden")
+
+                            role = discord.utils.get(after.channel.guild.roles, id=db_response[int(response.content)-1][1])
+                            if role is None:
+                                print("Rolle nicht gefunden")
+
+                            overwrites = {
+                                after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
+                                role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
+                            }
+
+
+                            voice_channel = await category.create_voice_channel(
+                                name = channel_name,
+                                overwrites=overwrites
+                            )
+                            distributor_vcs.append(voice_channel.id)
+                            done = True
+                        else:
+                            await after.channel.send(":x: Nicht zulässige Zahl")
+
+                if user.voice:
+                    await user.move_to(voice_channel)
+        
+
+        if before.channel and before.channel.id in distributor_vcs:
+            if len(before.channel.members) == 0:
+                await before.channel.delete(reason="Niemand ist mehr verbunden")
+                distributor_vcs.remove(before.channel.id)
 
 
 bot.run(bot_token.token)
