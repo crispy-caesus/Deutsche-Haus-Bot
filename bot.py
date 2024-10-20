@@ -75,10 +75,12 @@ async def test(ctx):
 # ======================== ADD CLUB ================================ #
 
 @bot.slash_command(description="Erstellt einen Booster Club")
-async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
+async def club_hinzufügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
+
+    emoji = emoji.strip()
 
     if ctx.author.get_role(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 1))== None:
-        await ctx.respond("Du bist kein Booster")
+        await ctx.respond(":x: Du bist kein Booster")
         return
     response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 2)
     if type(response) == str:
@@ -88,6 +90,8 @@ async def club_hinzuftügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
         await ctx.guild.create_role(name = response[0], color = response[1], mentionable = False)
 
     role = await role_converter.convert(ctx, rollenname)
+
+    await ctx.author.add_roles(role)
     
     await ctx.respond(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3))
 
@@ -148,6 +152,8 @@ async def on_voice_state_update(user, before, after):
                 message = "Welchen Club-Kanal willst du öffnen?"
                 for i in range(len(db_response)):
                     message += f"\n**{i+1}.** {db_response[i][0]}"
+
+                print(message)
                 
                 await after.channel.send(message)
                 
