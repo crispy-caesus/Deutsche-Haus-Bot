@@ -53,7 +53,7 @@ class Database():
                 await db.commit()
             except Error as e:
                 print(e)
-                return("Error")
+                return(":x: Error!")
         return(None)
 
 # =========================== CREATE CLUB =========================== #
@@ -87,7 +87,7 @@ class Database():
 
 
     async def create_club(self, channel_name: str, owner: int, role_id: int, role_name: str):
-        print(f"DB: received:\n   channel_name: {channel_name}\n   owner: {owner}\n   role_id: {role_id}")
+        print(f"DB: create_club received:\n   channel_name: {channel_name}\n   owner: {owner}\n   role_id: {role_id}")
         args = (channel_name, owner, role_id, role_name)
         sql = """INSERT INTO clubs (channel_name,owner_id,role_id,role_name)
                  VALUES(?,?,?,?);"""
@@ -116,7 +116,7 @@ class Database():
 # ============================ add member ================================== # 
 
     async def add_member(self, member: int, owner: int):
-        print(f"DB: received:\n   member: {member}\n   owner: {owner}")
+        print(f"DB: add_member received:\n   member: {member}\n   owner: {owner}")
         sql = """INSERT INTO members (user_id, club_id)
                  VALUES(?,?);"""
         try:
@@ -177,11 +177,9 @@ class Database():
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT club_id FROM members WHERE user_id = ?;", (user_id,)) as cursor:
                 async for club_id in cursor:
-                    print(f"{type(club_id[0])}: {club_id[0]}")
                     async with db.execute("SELECT channel_name, role_id, id FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
                         async for club in cursor2:
                             clubs.append(club)
-        print(clubs)
 
         return clubs
 

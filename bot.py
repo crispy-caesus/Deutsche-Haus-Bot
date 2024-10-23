@@ -18,9 +18,14 @@ member_converter = discord.ext.commands.MemberConverter()
 
 # ======================= INITIALIZATION ========================== #
 
+@bot.event
+async def on_ready():
+    print(f'LOG: bot has logged in as {bot.user}')
+
 @bot.listen()
 async def on_guild_join(guild):
     await logic.on_guild_join(guild.id)
+    print(f"LOG: guild {guild} joined")
 
 
 # ======================= SETUP ========================= #
@@ -38,6 +43,7 @@ async def setze_booster_rolle(ctx, booster_rolle):
         ctx.respond("Du musst Administrator sein, um diesen Command auszuführen")
         return
     await ctx.respond(await logic.add_booster_role(ctx.guild.id, int(booster_rolle[3:-1])))
+    print(f"LOG: {ctx.author} added {booster_rolle} as booster role")
 
 @bot.slash_command(description="Setzt den Verteiler Channel intern im Bot")
 async def setze_verteiler_channel(ctx, verteiler_channel_id):
@@ -45,6 +51,7 @@ async def setze_verteiler_channel(ctx, verteiler_channel_id):
         ctx.respond("Du musst Administrator sein, um diesen Command auszuführen")
         return
     await ctx.respond(await logic.add_distributor_channel(ctx.guild.id, int(verteiler_channel_id)))
+    print(f"LOG: {ctx.author} added {verteiler_channel_id} as distributor channel id")
 
 @bot.slash_command(description="Setzt die Kategorie, in der die Clubs erstellt werden sollen")
 async def setze_club_kategorie(ctx, kategorie_id):
@@ -52,19 +59,16 @@ async def setze_club_kategorie(ctx, kategorie_id):
         ctx.respond("Du musst Administrator sein, um diesen Command auszuführen")
         return
     await ctx.respond(await logic.add_club_category(ctx.guild.id, int(kategorie_id)))
+    print(f"LOG: {ctx.author} added {kategorie_id} as booster role")
 
 
 
 """
-@bot.slash_command(description="Füge neue Rollen zu der Datenbank hinzu")
-@discord.ext.commands.has_role()
-async def
-"""
-
 @bot.slash_command()
 async def get_existing_roles(ctx):
     results = ctx.guild.roles
     print(results)
+"""
 
 
 @bot.slash_command()
@@ -89,6 +93,9 @@ async def club_hinzufügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
     else:
         await ctx.guild.create_role(name = response[0], color = response[1], mentionable = False)
 
+    print(f"LOG: club {kanalname} created by {ctx.author}")
+
+
     role = await role_converter.convert(ctx, rollenname)
 
     await ctx.author.add_roles(role)
@@ -97,7 +104,8 @@ async def club_hinzufügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
     
     db = database.Database(f"{ctx.guild.id}.db")
     await db.add_member(ctx.author.id, ctx.author.id)
-
+    
+    print(f"LOG: role {role} added to {ctx.author}")
 
 
 # ==================== EDIT CLUBS ====================== #
@@ -121,12 +129,12 @@ async def mitglied_hinzufuegen(ctx, member):
     if response == None:
         await ctx.respond("Du hast keinen Club")
         return
-    print(f"{type(response)}: {response}")
     role = discord.utils.get(ctx.guild.roles, id=response)
 
 
     await member.add_roles(role)
     await ctx.respond(":white_check_mark:")
+    print(f"LOG: added {member} to {role}")
 
 
 @bot.command(description="Sends the bot's latency.") # this decorator makes a slash command
@@ -147,8 +155,8 @@ async def on_voice_state_update(user, before, after):
             
 
             if after.channel.id == await db.get_discord_id("distributor_channel_id"):
-                print(f"{user.name} Joined The {after.channel.name} VC")
-                print(after.channel.members)
+                print(f"LOG: {user.name} joined {after.channel.name}")
+                #print(f"LOG: channel members: {after.channel.members}")
                 
                
 
@@ -158,8 +166,6 @@ async def on_voice_state_update(user, before, after):
                 for i in range(len(db_response)):
                     message += f"\n**{i+1}.** {db_response[i][0]}"
 
-                print(message)
-                
                 await after.channel.send(message)
                 
                 def check(m):
@@ -184,11 +190,11 @@ async def on_voice_state_update(user, before, after):
 
                             category = discord.utils.get(after.channel.guild.categories, id=await db.get_discord_id("new_channel_category_id"))
                             if category is None:
-                                print("Kategorie nicht gefunden")
+                                print("ERROR: Can't find set new_channel_category on server")
 
                             role = discord.utils.get(after.channel.guild.roles, id=db_response[int(response.content)-1][1])
                             if role is None:
-                                print("Rolle nicht gefunden")
+                                print("ERROR: Can't find club role")
 
                             bot_member = after.channel.guild.me
                             club_owner = discord.utils.get(after.channel.guild.members, id=await db.get_owner_by_club_id(db_response[int(response.content)-1][2]))
@@ -227,19 +233,23 @@ async def on_voice_state_update(user, before, after):
                                 name = channel_name,
                                 overwrites=overwrites
                             )
+                            print(f"LOG: new channel {voice_channel} created")
                             distributor_vcs.append(voice_channel.id)
+                            print(f"LOG: The List of existing club channels is now: {distributor_vcs}")
                             done = True
                         else:
                             await after.channel.send(":x: Nicht zulässige Zahl")
 
                 if user.voice:
                     await user.move_to(voice_channel)
+                    print(f"LOG: moved {user} into {voice_channel}")
         
 
         if before.channel and before.channel.id in distributor_vcs:
             if len(before.channel.members) == 0:
                 await before.channel.delete(reason="Niemand ist mehr verbunden")
                 distributor_vcs.remove(before.channel.id)
+                print(f"LOG: deleted {before.channel} because it was empty")
 
 
 bot.run(bot_token.token)
