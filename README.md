@@ -14,7 +14,7 @@ This was just supposed to be a quick "script" of a bot, so the code is in no way
 
 ## Deployment
 Create a bot applicationon on https://discord.com/developers/applications and give the bot read message intents.
-Add the bot to your server and give it at least `Manage Channels`, `Manage Roles`, `Move Members`, `Send Messages` and `View Channels` permissions
+Add the bot to your server and give it at least `Manage Channels`, `Manage Roles`, `Move Members`, `Mute Members`, `Deafen Members`, `Send Messages` and `View Channels` permissions
 
 Add your bot's token into a bot_token.py file in a format of `token = ""`
 
