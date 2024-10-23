@@ -178,7 +178,8 @@ async def on_voice_state_update(user, before, after):
                     try:
                         response = await bot.wait_for('message', check=check, timeout=30.0)
                     except asyncio.TimeoutError:
-                        await after.channel.send("Zu spät")
+                        await after.channel.send(":x: Zu spät (joine dem Kanal noch einmal, um die Dialogauswahl wieder zu erhalten)")
+                        return
                     else:
                         try: 
                             int(response.content)
