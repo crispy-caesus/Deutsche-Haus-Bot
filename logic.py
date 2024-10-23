@@ -98,7 +98,7 @@ async def add_club(guild_id: int, channel_name_without_emoji: str, emoji_: str, 
             if color[0] == '#':
                 color = color[1:]
             try:
-                color = int("0x"+color, 16)+0x200
+                color = int("0x"+color, 16)
             except:
                 return("❌ Error! Farbformat falsch angegeben")
 

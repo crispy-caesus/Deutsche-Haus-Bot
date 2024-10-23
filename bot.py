@@ -94,6 +94,11 @@ async def club_hinzufügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
     await ctx.author.add_roles(role)
     
     await ctx.respond(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3))
+    
+    db = database.Database(f"{ctx.guild.id}.db")
+    await db.add_member(ctx.author.id, ctx.author.id)
+
+
 
 # ==================== EDIT CLUBS ====================== #
 
@@ -185,9 +190,36 @@ async def on_voice_state_update(user, before, after):
                             if role is None:
                                 print("Rolle nicht gefunden")
 
+                            bot_member = after.channel.guild.me
+                            club_owner = discord.utils.get(after.channel.guild.members, id=await db.get_owner_by_club_id(db_response[int(response.content)-1][2]))
+
+
+                            bot_overwrites = discord.PermissionOverwrite (
+                                move_members = True,
+                                view_channel = True,
+                                manage_channels = True
+                            )
+
+                            club_member_overwrites = discord.PermissionOverwrite (
+                                view_channel = True
+                            )
+
+                            club_owner_overwrites = discord.PermissionOverwrite (
+                                manage_channels = True,
+                                mute_members = True,
+                                deafen_members = True,
+                                move_members = True
+                            )
+
+                            default_overwrites = discord.PermissionOverwrite (
+                                view_channel = False
+                            )
+
                             overwrites = {
-                                after.channel.guild.default_role: discord.PermissionOverwrite(view_channel=False),  # @everyone can't view
-                                role: discord.PermissionOverwrite(view_channel=True, connect=True)  # Role can view and connect
+                                after.channel.guild.default_role: default_overwrites,
+                                bot_member: bot_overwrites,
+                                club_owner: club_owner_overwrites,
+                                role: club_member_overwrites
                             }
 
 

@@ -178,16 +178,17 @@ class Database():
             async with db.execute("SELECT club_id FROM members WHERE user_id = ?;", (user_id,)) as cursor:
                 async for club_id in cursor:
                     print(f"{type(club_id[0])}: {club_id[0]}")
-                    async with db.execute("SELECT channel_name, role_id FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
+                    async with db.execute("SELECT channel_name, role_id, id FROM clubs WHERE id = ?;", (club_id[0], )) as cursor2:
                         async for club in cursor2:
                             clubs.append(club)
         print(clubs)
 
         return clubs
 
-
-
-
-
+    async def get_owner_by_club_id(self, club_id):
+        async with aiosqlite.connect(self.db_name) as db:
+            async with db.execute("SELECT owner_id FROM clubs WHERE id = ?;", (club_id, )) as cursor:
+                result = await cursor.fetchone()
+                return (result[0])
 
 
