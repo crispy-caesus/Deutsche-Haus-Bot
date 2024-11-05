@@ -21,3 +21,8 @@ Add your bot's token into a bot_token.py file in a format of `token = ""`
 Install the necessary **dependencies** with `pip install -r requirements.txt`
 
 Run the bot with `python bot.py`
+
+## ToDo
+- make clubs editable
+- implement role headers properly
+- don't create several channels, if two people open the same club
