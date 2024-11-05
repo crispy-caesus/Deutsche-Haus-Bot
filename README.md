@@ -18,6 +18,8 @@ Add the bot to your server and give it at least `Manage Channels`, `Manage Roles
 
 Add your bot's token into a bot_token.py file in a format of `token = ""`
 
+Replace the ID in the `dm()` function in the `bot.py` with your own UID (or remove the calls to it if you don't want it)
+
 Install the necessary **dependencies** with `pip install -r requirements.txt`
 
 Run the bot with `python bot.py`
