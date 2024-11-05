@@ -10,30 +10,6 @@ async def on_guild_join(guild_id):
 
 # ========================= SETUP ========================== #
 
-async def setup(guild_id):
-    db = database.Database(f"{guild_id}.db")
-    booster_role_id = await db.get_discord_id("booster_role_id")
-    if booster_role_id == None:
-        booster_check = "❌"
-    else:
-        booster_check = "✅"
-    distributor_channel_id = await db.get_discord_id("distributor_channel_id")
-    if distributor_channel_id == None:
-        distributor_check = "❌"
-    else:
-        distributor_check = "✅"
-    new_channel_category_id = await db.get_discord_id("new_channel_category_id")
-    if new_channel_category_id == None:
-        category_check = "❌"
-    else:
-        category_check = "✅"
-
-    return( \
-            f"{booster_check} Setze die Booster Rolle mit `/setze_booster_rolle`\n" \
-            f"{distributor_check} Setze den Verteiler Channel mit `/setze_verteiler_channel`\n" \
-            f"{category_check} Setze die Kategorie, in der die Clubs erstellt werden sollen mit `/setze_club_kategorie`" \
-           )
-
 async def add_booster_role(guild_id: int, booster_role_id: int)-> str:
     db = database.Database(f"{guild_id}.db")
     response = await db.add_id("booster_role_id", booster_role_id)
