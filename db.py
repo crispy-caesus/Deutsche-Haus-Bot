@@ -46,7 +46,7 @@ class Database():
 
 # ========================= SETUP ============================ #
 
-    async def get_discord_id(self, id_type: str):
+    async def get_discord_id(self, id_type: str)->Error|None:
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT discord_id FROM ids WHERE id_type = ?;", (id_type,)) as cursor:
                 async for row in cursor:
@@ -75,10 +75,14 @@ class Database():
 
 # =========================== CREATE CLUB =========================== #
 
-    async def get_booster_role_id(self):
+    async def get_booster_role_id(self)-> int | None:
         async with aiosqlite.connect(self.db_name) as db:
             async with db.execute("SELECT discord_id FROM ids WHERE id_type = 'booster_role_id';") as cursor:
-                return((await cursor.fetchone())[0])
+                id = await cursor.fetchone()
+                if id:
+                    return(id[0])
+                else:
+                    return None
 
     async def select_role_id_by_owner(self, owner_id):
         async with aiosqlite.connect(self.db_name) as db:
@@ -87,7 +91,7 @@ class Database():
                     return(await cursor.fetchone()[3])
             except Error as e:
                 print(e)
-                return("❌ Error! Du besitzt keinen Club")
+                return(e)
 
 
     async def select_club_by_channel_name(self, channel_name):
@@ -113,12 +117,11 @@ class Database():
                 await db.execute(sql, args)
                 await db.commit()
         except Error as e:
-            print(e)
-            return("❌ Error!")
+            return(e)
 
 # ============================ EDIT CLUB ========================== #
 
-    async def club_edit(self, owner_id: int, column, value):
+    async def club_edit(self, owner_id: int, column: str, value: str):
 
         #print(f"DB: updating club:\n    owner_id: {owner_id}\n    column: {column}\n    value: {value}")
         async with aiosqlite.connect(self.db_name) as db:
@@ -128,7 +131,7 @@ class Database():
                 return(None)
             except Error as e:
                 print(e)
-                return("❌ Error!")
+                return(e)
 
 # ============================ add member ================================== # 
 
@@ -145,7 +148,7 @@ class Database():
                         await db.commit()
         except Error as e:
             print(e)
-            return("❌ Error!")
+            return(e)
 
 
     async def select_role_id_by_owner(self, member: int):

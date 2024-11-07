@@ -2,11 +2,10 @@ import discord
 import discord.ext.commands
 import asyncio
 from varname import nameof
-import time
+import emoji
 
 import bot_token
 import db as database
-import logic
 
 # ======================== STARTUP =========================== #
 
@@ -26,12 +25,15 @@ async def on_ready():
 
 @bot.listen()
 async def on_guild_join(guild):
-    await logic.on_guild_join(guild.id)
+    db = await init_db(guild)
+    await db.create_tables()
     print(f"LOG: guild {guild} joined")
 
 
 # ====================== DB INIT ========================= #
-async def init_db(ctx)-> database.Database:
+async def init_db(ctx, guild=None)-> database.Database:
+    if guild:
+        return database.Database(f"{guild.id}.db")
     return database.Database(f"{ctx.guild.id}.db")
 
 
@@ -48,10 +50,10 @@ async def dm(ctx, message: str, err):
             await ctx.send("Der Entwickler wurde kontaktiert und wird sich sobald wie möglich darum kümmern") 
         except discord.Forbidden:
             print(f"{ctx.guild.id} | ERROR: Can't DM user")
-            ctx.send("Bitte kontaktiere die Serverleitung")
+            await ctx.send("Bitte kontaktiere die Serverleitung")
     else:
         print(f"{ctx.guild.id} | ERROR: Can't find user to DM")
-        ctx.send("Bitte kontaktiere die Serverleitung")
+        await ctx.send("Bitte kontaktiere die Serverleitung")
 
 
 async def error(ctx, message: str, err = None):
@@ -59,7 +61,7 @@ async def error(ctx, message: str, err = None):
     print(decoratedMessage)
     await dm(ctx, decoratedMessage, err=err)
     
-    ctx.send(":x: Interner Fehler")
+    await ctx.send(":x: Interner Fehler")
 
 
 async def log(ctx, message: str):
@@ -107,7 +109,13 @@ async def setze_booster_rolle(ctx, booster_rolle):
     if await is_admin(ctx) == False:
         return
 
-    await ctx.respond(await logic.add_booster_role(ctx.guild.id, int(booster_rolle[3:-1])))
+    db = await init_db(ctx)
+    err = await db.add_id("booster_role_id", booster_rolle[3:-1]) # [3:-1] to remove @<> around role ping
+    if err:
+        await error(ctx, "Set-Booster-Role: DB error", err)
+        return
+
+    await ctx.respond("✅ Booster Rolle registriert")
     await log(ctx, f"{ctx.author} added {booster_rolle} as booster role")
     return
 
@@ -117,7 +125,13 @@ async def setze_verteiler_channel(ctx, verteiler_channel_id):
     if await is_admin(ctx) == False:
         return
 
-    await ctx.respond(await logic.add_distributor_channel(ctx.guild.id, int(verteiler_channel_id)))
+    db = await init_db(ctx)
+    err = await db.add_id("distributor_channel_id", verteiler_channel_id) 
+    if err:
+        await error(ctx, "Set-Distributor-Channel: DB error", err)
+        return
+
+    await ctx.respond("✅ Verteiler Channel registriert")
     await log(ctx, f"{ctx.author} added {verteiler_channel_id} as distributor channel id")
     return
 
@@ -126,8 +140,13 @@ async def setze_verteiler_channel(ctx, verteiler_channel_id):
 async def setze_club_kategorie(ctx, kategorie_id):
     if await is_admin(ctx) == False:
         return
+    db = await init_db(ctx)
+    err = await db.add_id("new_channel_category_id", kategorie_id) 
+    if err:
+        await error(ctx, "Set-New-Channel-Category: DB error", err)
+        return
 
-    await ctx.respond(await logic.add_club_category(ctx.guild.id, int(kategorie_id)))
+    await ctx.respond("✅ Club Kategorie regisitriert")
     await log(ctx, f"{ctx.author} added {kategorie_id} as booster role")
 
 
@@ -144,7 +163,7 @@ async def setze_clubrollenheader_rolle(ctx, clubrollenheader_rolle: str):
         await error(ctx, "Database error when adding club role header role id", err)
         return
     
-    await ctx.respond(f"✅ Clubrollenheader {clubrollenheader_rolle} hinzugefügt")
+    await ctx.respond(f"✅ Clubrollenheader {clubrollenheader_rolle} registriert")
 
 
 
@@ -163,41 +182,94 @@ async def test(ctx):
 
 # ======================== ADD CLUB ================================ #
 
+async def check_club_parameters(ctx, db: database.Database, channelName="", channelEmoji="", roleName="", roleColor=""):
+    if channelEmoji != "":
+        if len(channelEmoji) != 1:
+            ctx.respond("❌ Error! Das Emoji-Feld darf nicht länger oder kürzer als 1 sein")
+            return 
+        if emoji.is_emoji(channelEmoji) != True:
+            ctx.respond("❌ Error! Das Emoji-Feld muss mit einem Emoji gefüllt werden")
+            return 
+
+    if channelName != "":
+        if emoji.emoji_count(channelName) > 0:
+            ctx.respond("❌ Error! Der Kanalname darf keine Emojis enthalten")
+            return 
+
+        combined_channel_name = f"「{channelEmoji}」{channelName}"
+        existing_club = await db.select_club_by_channel_name(combined_channel_name)
+        if existing_club != None:
+            ctx.respond("❌ Error! Es gibt bereits einen Club mit diesem Kanalnamen")
+            return
+
+    if roleName != "":
+        existing_club_role = await db.select_club_by_role_name(roleName)
+        if existing_club_role != None:
+            ctx.respond("❌ Error! Es existiert bereits ein Club mit diesem Rollennamen")
+            return 
+
+    if roleColor != "":
+        if roleColor[0] == '#':
+            roleColor = roleColor[1:]
+        try:
+            roleColor = int("0x"+roleColor, 16)
+        except:
+            return("❌ Error! Farbformat falsch angegeben")
+
+    return(roleName, roleColor)
+
+
 @bot.slash_command(description="Erstellt einen Booster Club")
-async def club_hinzufügen(ctx, kanalname, emoji, rollenname, rollenfarbe):
+async def club_hinzufügen(ctx, kanalname, kanalemoji, rollenname, rollenfarbe):
+    db = await init_db(ctx)
+    kanalemoji = kanalemoji.strip()
 
-    emoji = emoji.strip()
-
-    if ctx.author.get_role(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 1))== None:
+    boosterRoleId = await db.get_booster_role_id()
+    if boosterRoleId == None:
+        await error(ctx, "Role-Creation: No booster role id foundin DB")
+        return
+    if ctx.author.get_role(boosterRoleId) == None:
         await ctx.respond(":x: Du bist kein Booster")
         return
-    response = await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, rollenfarbe, ctx.author.id, 2)
-    if type(response) == str:
-        await ctx.respond(response)
+
+    if await db.select_role_id_by_owner(ctx.author.id) != None:
+        await ctx.respond("❌ Error! Du hast bereits einen Club")
         return
-    else:
-        await ctx.guild.create_role(name = response[0], color = response[1], mentionable = False)
 
-    await log(ctx, f"club {kanalname} created by {ctx.author}")
+    check_return = await check_club_parameters(ctx, db, kanalname, kanalemoji, rollenname, rollenfarbe)
+    if check_return != None:
+        roleName, roleColor = check_return
+        createdRole = await ctx.guild.create_role(name = roleName, color = roleColor, mentionable = False)
+        if createdRole == None:
+            await error(ctx, "Role-Creation: Couldn't create role on discord")
+            return
+        err = await db.create_club(f"「{kanalemoji}」{kanalname}", ctx.author.id, createdRole.id, roleName)
+        if err:
+            await error(ctx, "Role-Creation: Couldn't create new role in DB", err)
+            return
+        await log(ctx, f"club {kanalname} created by {ctx.author}")
 
+        await ctx.author.add_roles(createdRole)
+        await db.add_member(ctx.author.id, ctx.author.id)
+        await log(ctx, f"Role {createdRole} added to {ctx.author}")
 
-    role = await role_converter.convert(ctx, rollenname)
-
-    await ctx.author.add_roles(role)
-    
-    await ctx.respond(await logic.add_club(ctx.guild.id, kanalname, emoji, rollenname, role.id, ctx.author.id, 3))
-    
-    db = database.Database(f"{ctx.guild.id}.db")
-    await db.add_member(ctx.author.id, ctx.author.id)
-    
-    await log(ctx, f"Role {role} added to {ctx.author}")
+        await ctx.respond(f"✅ Club `「{kanalemoji}」{kanalname}` erstellt!")
 
 
 # ==================== EDIT CLUBS ====================== #
 
-@bot.slash_command(description="Ändert den Channel Name des Clubs")
-async def club_channel_name_aendern(ctx, neuer_name):
-    await ctx.respond(await logic.club_change_channel_name(ctx.guild.id, ctx.author.id, neuer_name))
+@bot.slash_command(description="Ändern eines Paramaters seines Clubs")
+async def club_editieren(ctx, kanalname="", kanalemoji="", rollenname="", rollenfarbe=""):
+    db = await init_db(ctx)
+    owner_id = ctx.author.id
+    if kanalname != "":
+        await db.club_edit(owner_id, "channel_name", kanalname)
+    if kanalemoji != "":
+        pass
+    if rollenname != "":
+        pass
+    if rollenfarbe != "":
+        pass
 
 # ========================= dsfsf ======================= #
 @bot.slash_command(description="Fügt Member zu eigenem Club hinzu")
