@@ -1,7 +1,7 @@
 import discord
 import discord.ext.commands
 import asyncio
-from varname import nameof
+from utils import nameof
 import emoji
 import sys
 
